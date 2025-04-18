@@ -129,6 +129,7 @@ class WebTransportProtocol(QuicConnectionProtocol):
         producer.start()
 
         track = BouncingBallTrack(frame_queue, fps=self.app_ctx["fps"])
+        pc.addTransceiver("video", direction="sendonly")  # <-- add this
         pc.addTrack(track)
         print("[SERVER] Track added to peer connection.")
         print("[DEBUG] pc.addTrack(track) completed")
@@ -139,8 +140,14 @@ class WebTransportProtocol(QuicConnectionProtocol):
             if pc.connectionState == "connected":
                 print("[SERVER] WebRTC connection established.")
 
+        # Optionally log if anything is received (not expected in sendonly mode)
+        @pc.on("track")
+        def on_track(track):
+            print(f"[SERVER] Unexpected incoming track: kind={track.kind}")
+
         print("[DEBUG] Creating and setting local description")
         await pc.setLocalDescription(await pc.createAnswer())
+        await asyncio.sleep(0.1)
         print("[DEBUG] pc.setLocalDescription() completed")
         print("[SERVER] Local description set.")
 
@@ -148,7 +155,7 @@ class WebTransportProtocol(QuicConnectionProtocol):
             "sdp": pc.localDescription.sdp,
             "type": pc.localDescription.type
         }
-        await self._http.send_data(stream_id, json.dumps(response).encode(), end_stream=True)
+        await self._http.send_data(stream_id, json.dumps(response).encode(), end_stream=False)
 
 async def run_app():
     parser = argparse.ArgumentParser()

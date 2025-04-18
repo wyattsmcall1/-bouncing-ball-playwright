@@ -83,8 +83,24 @@
         console.log("[JS] Creating Answer");
         const answerMsg = JSON.parse(new TextDecoder().decode(value));
         console.log("[JS] Set Remote Descriptor");
-        await pc.setRemoteDescription(new RTCSessionDescription(answerMsg));
+        console.log("[JS] Answer message received:", answerMsg);
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(answerMsg));
+          console.log("[JS] Remote description set successfully.");
+        } catch (err) {
+          console.error("[JS] Failed to set remote description:", err);
+        }
 
+        console.log("[JS] Transceivers after setRemoteDescription:");
+        pc.getTransceivers().forEach((t, i) => {
+          console.log(`  Transceiver ${i}:`, t);
+        });
+
+        console.log("[JS] PeerConnection receivers:");
+        pc.getReceivers().forEach((r, i) => {
+          console.log(`  Receiver ${i}:`, r.track ? r.track.kind : "none");
+        });
+        
         console.log("[JS] WebRTC stream connected");
         console.log("[JS] Finished setting up WebRTC connection.");
       } catch (err) {

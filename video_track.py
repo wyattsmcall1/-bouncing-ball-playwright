@@ -20,25 +20,31 @@ class BouncingBallTrack(VideoStreamTrack):
         self.frame_count = 0
 
     async def recv(self):
-        #if DEBUG:
-        #    print("[Track] recv() called at", time.time())
+        print("[Track] recv() called at", time.time())
+        frame = None
 
-        #await asyncio.sleep(self.frame_duration)
+        # Wait longer on the first few frames to let the producer fill
+        max_attempts = 30 if self.frame_count < 5 else 5
 
-        print("[Track] recv() called")
+        for _ in range(max_attempts):
+            try:
+                frame = self.frame_queue.get_nowait()
+                print("[Track] Frame dequeued with shape:", frame.shape)
+                break
+            except Exception:
+                await asyncio.sleep(self.frame_duration / 5)
 
-        try:
-            frame = self.frame_queue.get_nowait()
-            print("[Track] Frame dequeued with shape:", frame.shape)
-        except Exception:
-            print("[Track] Queue empty, sending fallback frame")
-            frame = np.full((480, 640, 3), (0, 255, 0), dtype=np.uint8)
+        # If no frame was available, reuse the previous frame if any
+        if frame is None:
+            print("[Track] Queue empty, dropping to black")
+            frame = np.zeros((480, 640, 3), dtype=np.uint8)
 
         video_frame = VideoFrame.from_ndarray(frame, format="bgr24")
         video_frame.pts = int((time.time() - self._start) * 90000)
         video_frame.time_base = Fraction(1, 90000)
 
-        #if DEBUG:
-        #    print("[Track] Returning frame with PTS:", pts)
+        if self.frame_count < 5:
+            print(f"[Track] Sending frame {self.frame_count}, PTS={video_frame.pts}")
 
+        self.frame_count += 1
         return video_frame
