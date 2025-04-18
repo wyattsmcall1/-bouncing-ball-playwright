@@ -1,3 +1,5 @@
+# End-to-end tests for WebRTC/WebTransport using Chromium inside Docker
+
 import os
 import subprocess
 import time

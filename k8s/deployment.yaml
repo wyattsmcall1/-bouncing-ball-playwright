@@ -1,3 +1,5 @@
+# Kubernetes Deployment spec for the server pod
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:

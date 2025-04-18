@@ -1,3 +1,5 @@
+# WebRTC-compatible video stream track that serves frames from the queue
+
 import asyncio
 import av
 import numpy as np

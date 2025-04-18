@@ -1,3 +1,5 @@
+# Python dependencies for server and tests
+
 aiohttp
 aioquic
 aiortc

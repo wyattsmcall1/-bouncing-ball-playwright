@@ -1,3 +1,5 @@
+# Tests only the multiprocessing frame producer
+
 import multiprocessing as mp
 import time
 import unittest

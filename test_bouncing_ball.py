@@ -1,3 +1,5 @@
+# Unit test for bouncing ball physics
+
 import unittest
 from bouncing_ball import BouncingBall
 

@@ -8,19 +8,32 @@ This project simulates a bouncing ball rendered using OpenCV and streams it usin
 
 ```
 .
-├── Dockerfile
-├── app.py
-├── frame_worker.py
-├── video_track.py
-├── requirements.txt
-├── test_app.py
-├── test_index.py
-├── server/
-│   └── static/
-│       └── index.html
-└── k8s/
-    ├── deployment.yaml
-    └── service.yaml
+├── Dockerfile                  # Defines the container image used for local and Kubernetes deployment
+├── bouncing_ball.py           # Ball physics logic for standalone simulation
+├── frame_worker.py            # Multiprocessing class that generates video frames in a background process
+├── video_track.py             # WebRTC-compatible video stream track that serves frames from the queue
+├── launch_minikube.bash       # Launches the full stack on Minikube (build + deploy + expose)
+├── launch_playwright_server.bash  # Launches server + headful Chromium browser inside Docker
+├── launch_playwright_server_interactive.py  # Launch logic for server and browser using Playwright
+├── main_ball_test.py          # Runs standalone OpenCV-based ball simulation
+├── main_worker_test.py        # Tests only the multiprocessing frame producer
+├── main_video_test.py         # Runs full video pipeline: producer + viewer
+├── test_app.py                # Unit tests for server-side WebTransport + WebRTC logic
+├── test_index.py              # End-to-end tests for WebRTC/WebTransport using Chromium inside Docker
+├── test_bouncing_ball.py      # Unit test for bouncing ball physics
+├── test_frame_worker.py       # Unit test for multiprocessing frame producer
+├── test_video_track.py        # Unit test for the video stream wrapper
+├── requirements.txt           # Python dependencies for server and tests
+├── pytest.ini                 # Pytest configuration file
+├── localhost.pem              # TLS certificate generated via mkcert
+├── localhost-key.pem          # TLS private key generated via mkcert
+├── k8s/
+│   ├── deployment.yaml        # Kubernetes Deployment spec for the server pod
+│   └── service.yaml           # Kubernetes Service for exposing HTTP + QUIC
+└── server/
+    ├── app.py                 # Entry point for the QUIC+WebTransport server (serves HTML and video)
+    └── static/
+        └── index.html         # Browser frontend for video playback and WebTransport handshake
 ```
 
 ---
@@ -44,31 +57,31 @@ xhost + $IP
 
 ## Running Tests and Simulations
 
-### `test_index.py`
+### `test_index.py` — End-to-end test of browser and QUIC server
 
 ```bash
 docker run -it --rm   -e DISPLAY=$IP:0   -v /tmp/.X11-unix:/tmp/.X11-unix   -v "$(pwd)/output":/app/tests/output   bouncing-ball-playwright   pytest test_index.py -s -v
 ```
 
-### `main_ball_test.py`
+### `main_ball_test.py` — OpenCV-only ball simulation
 
 ```bash
 docker run -it --rm   -e DISPLAY=$IP:0   -v /tmp/.X11-unix:/tmp/.X11-unix   -v "$(pwd)/output":/app/output   bouncing-ball-playwright   python3 main_ball_test.py --fps 30 --duration 5
 ```
 
-### `main_worker_test.py`
+### `main_worker_test.py` — Frame generation test via worker process
 
 ```bash
 docker run -it --rm   -e DISPLAY=$IP:0   -v /tmp/.X11-unix:/tmp/.X11-unix   -v "$(pwd)/output":/app/output   bouncing-ball-playwright   python3 main_worker_test.py --fps 30 --duration 5
 ```
 
-### `main_video_test.py`
+### `main_video_test.py` — Full pipeline test with multiprocessing + OpenCV render
 
 ```bash
 docker run -it --rm   -e DISPLAY=$IP:0   -v /tmp/.X11-unix:/tmp/.X11-unix   -v "$(pwd)/output":/app/output   bouncing-ball-playwright   python3 main_video_test.py --fps 30 --duration 5
 ```
 
-### `test_app.py`
+### `test_app.py` — Isolated server test without browser
 
 ```bash
 docker run -it --rm   -e DISPLAY=$IP:0   -v /tmp/.X11-unix:/tmp/.X11-unix   -p 8000:8000 -p 8080:8080   bouncing-ball-playwright   pytest test_app.py -s -v
@@ -174,3 +187,12 @@ You can run the WebTransport+WebRTC server directly inside the container (withou
 ```bash
 ./launch_playwright_server.sh
 ```
+
+---
+
+##  Notes
+
+- The GUI requires X11 (e.g., XQuartz on macOS).
+- mkcert is used for local TLS.
+- QUIC runs over port 8080. HTTP over 8000.
+- Use supported browsers (Chromium, Chrome) with WebTransport.

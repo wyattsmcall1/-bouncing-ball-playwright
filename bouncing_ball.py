@@ -1,3 +1,5 @@
+# Ball physics logic for standalone simulation
+
 import numpy as np
 import cv2
 

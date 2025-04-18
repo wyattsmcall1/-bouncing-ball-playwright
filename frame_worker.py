@@ -1,3 +1,5 @@
+# Multiprocessing class that generates video frames in a background process
+
 import time
 import multiprocessing as mp
 import cv2

@@ -1,4 +1,5 @@
-# main_video_test.py
+# Runs full video pipeline: producer + viewer
+
 import argparse
 import multiprocessing as mp
 import asyncio

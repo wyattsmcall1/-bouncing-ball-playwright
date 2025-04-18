@@ -1,3 +1,5 @@
+# Unit test for the video stream wrapper
+
 import unittest
 import numpy as np
 from video_track import BouncingBallTrack

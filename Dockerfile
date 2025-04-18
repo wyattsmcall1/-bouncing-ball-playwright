@@ -1,3 +1,5 @@
+# Defines the container image used for local and Kubernetes deployment
+
 FROM python:3.10-slim
 
 # Install system dependencies

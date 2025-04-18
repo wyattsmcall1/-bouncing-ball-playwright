@@ -1,3 +1,5 @@
+# Unit test for multiprocessing frame producer
+
 import unittest
 import multiprocessing as mp
 import time

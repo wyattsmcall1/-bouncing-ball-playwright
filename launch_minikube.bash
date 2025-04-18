@@ -1,4 +1,5 @@
 #!/bin/bash
+# Launches the full stack on Minikube (build + deploy + expose)
 
 set -e
 

@@ -1,3 +1,5 @@
+# Runs standalone OpenCV-based ball simulation
+
 import time
 import cv2
 import argparse
