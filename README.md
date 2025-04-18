@@ -190,7 +190,13 @@ You can run the WebTransport+WebRTC server directly inside the container (withou
 
 ---
 
-##  Notes
+## Known Issues
+
+Some features are partially implemented due to time constraints. Please see [known_issues.md](known_issues.md) for a full list of limitations and workarounds.
+
+---
+
+## Notes
 
 - The GUI requires X11 (e.g., XQuartz on macOS).
 - mkcert is used for local TLS.
