@@ -47,56 +47,31 @@ xhost + $IP
 ### `test_index.py`
 
 ```bash
-docker run -it --rm \
-  -e DISPLAY=$IP:0 \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -v "$(pwd)/output":/app/tests/output \
-  bouncing-ball-playwright \
-  pytest test_index.py -s -v
+docker run -it --rm   -e DISPLAY=$IP:0   -v /tmp/.X11-unix:/tmp/.X11-unix   -v "$(pwd)/output":/app/tests/output   bouncing-ball-playwright   pytest test_index.py -s -v
 ```
 
 ### `main_ball_test.py`
 
 ```bash
-docker run -it --rm \
-  -e DISPLAY=$IP:0 \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -v "$(pwd)/output":/app/output \
-  bouncing-ball-playwright \
-  python3 main_ball_test.py --fps 30 --duration 5
+docker run -it --rm   -e DISPLAY=$IP:0   -v /tmp/.X11-unix:/tmp/.X11-unix   -v "$(pwd)/output":/app/output   bouncing-ball-playwright   python3 main_ball_test.py --fps 30 --duration 5
 ```
 
 ### `main_worker_test.py`
 
 ```bash
-docker run -it --rm \
-  -e DISPLAY=$IP:0 \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -v "$(pwd)/output":/app/output \
-  bouncing-ball-playwright \
-  python3 main_worker_test.py --fps 30 --duration 5
+docker run -it --rm   -e DISPLAY=$IP:0   -v /tmp/.X11-unix:/tmp/.X11-unix   -v "$(pwd)/output":/app/output   bouncing-ball-playwright   python3 main_worker_test.py --fps 30 --duration 5
 ```
 
 ### `main_video_test.py`
 
 ```bash
-docker run -it --rm \
-  -e DISPLAY=$IP:0 \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -v "$(pwd)/output":/app/output \
-  bouncing-ball-playwright \
-  python3 main_video_test.py --fps 30 --duration 5
+docker run -it --rm   -e DISPLAY=$IP:0   -v /tmp/.X11-unix:/tmp/.X11-unix   -v "$(pwd)/output":/app/output   bouncing-ball-playwright   python3 main_video_test.py --fps 30 --duration 5
 ```
 
 ### `test_app.py`
 
 ```bash
-docker run -it --rm \
-  -e DISPLAY=$IP:0 \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -p 8000:8000 -p 8080:8080 \
-  bouncing-ball-playwright \
-  pytest test_app.py -s -v
+docker run -it --rm   -e DISPLAY=$IP:0   -v /tmp/.X11-unix:/tmp/.X11-unix   -p 8000:8000 -p 8080:8080   bouncing-ball-playwright   pytest test_app.py -s -v
 ```
 
 ---
@@ -181,9 +156,21 @@ This will build the image, apply Kubernetes resources, and give you the public U
 
 ---
 
-##  Notes
+## Design Decisions
 
-- The GUI requires X11 (e.g., XQuartz on macOS).
-- mkcert is used for local TLS.
-- QUIC runs over port 8080. HTTP over 8000.
-- Use supported browsers (Chromium, Chrome) with WebTransport.
+To keep the testing and deployment process agile and unified, this project uses **Playwright with Chromium** inside the Docker container. This enables:
+
+- **Headful browser automation** within the container stack, avoiding host-browser synchronization issues on macOS and Linux.
+- **Isolated unit testing** of backend and frontend logic:
+  - `test_app.py` tests the `app.py` server logic (WebTransport/WebRTC) independently.
+  - `test_index.py` tests the frontend `index.html` behavior and its integration with the server.
+
+This modular design helps identify and debug issues in isolation before verifying end-to-end behavior.
+
+### Directly Launch the Server with Playwright
+
+You can run the WebTransport+WebRTC server directly inside the container (without running `test_index.py`) using:
+
+```bash
+./launch_playwright_server.sh
+```
