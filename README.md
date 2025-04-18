@@ -4,7 +4,7 @@ This project simulates a bouncing ball rendered using OpenCV and streams it usin
 
 ---
 
-## 🧱 Project Structure
+## Project Structure
 
 ```
 .
@@ -25,7 +25,7 @@ This project simulates a bouncing ball rendered using OpenCV and streams it usin
 
 ---
 
-## 🐳 Docker Environment Setup
+## Docker Environment Setup
 
 ### 1. Build Docker Image
 
@@ -42,7 +42,7 @@ xhost + $IP
 
 ---
 
-## 🧪 Running Tests and Simulations
+## Running Tests and Simulations
 
 ### `test_index.py`
 
@@ -101,14 +101,14 @@ docker run -it --rm \
 
 ---
 
-## 📁 Output Files
+## Output Files
 
 - Saved to `output/` directory.
 - Available as individual frames or videos depending on flags.
 
 ---
 
-## ⚙️ Kubernetes Deployment with Minikube
+## Kubernetes Deployment with Minikube
 
 ### Prerequisites
 
@@ -118,7 +118,7 @@ docker run -it --rm \
 
 ---
 
-### 🚀 Launch Instructions
+### Launch Instructions
 
 #### 1. Start Minikube
 
@@ -159,7 +159,7 @@ minikube service bouncing-ball-service
 
 ---
 
-### 🔁 Cleanup
+### Cleanup
 
 ```bash
 kubectl delete -f k8s/
@@ -168,7 +168,7 @@ minikube stop
 
 ---
 
-## 🏁 Minikube Launch Script
+## Minikube Launch Script
 
 You can automate everything with:
 
@@ -181,7 +181,7 @@ This will build the image, apply Kubernetes resources, and give you the public U
 
 ---
 
-## 💡 Notes
+##  Notes
 
 - The GUI requires X11 (e.g., XQuartz on macOS).
 - mkcert is used for local TLS.
