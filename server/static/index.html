@@ -66,12 +66,18 @@
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
+        console.log("[JS] Writing SDP offer to server...");
         await writer.write(new TextEncoder().encode(JSON.stringify({
           type: "offer", sdp: pc.localDescription.sdp
         })));
+        console.log("[JS] Offer sent to server.");
 
+        console.log("[JS] Starting Reader");
         const { value } = await reader.read();
+        console.log("[JS] Read Data");
+        console.log("[JS] Creating Answer");
         const answerMsg = JSON.parse(new TextDecoder().decode(value));
+        console.log("[JS] Set Remote Descriptor");
         await pc.setRemoteDescription(new RTCSessionDescription(answerMsg));
 
         console.log("[JS] WebRTC stream connected");

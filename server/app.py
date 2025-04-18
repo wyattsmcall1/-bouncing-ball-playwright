@@ -60,6 +60,10 @@ class WebTransportProtocol(QuicConnectionProtocol):
         if isinstance(event, ProtocolNegotiated):
             print(f" ALPN negotiated: {event.alpn_protocol}")
         if isinstance(event, StreamDataReceived):
+            print(f"[DEBUG] StreamDataReceived: stream_id={event.stream_id}, session_ids={self._sessions}")
+            # Add this:
+            if not self._sessions:
+                print("[ERROR] No WebTransport sessions accepted yet!")
             if event.stream_id in self._sessions:
                 print("[DEBUG] Dispatching stream data to handle_stream_data")
                 asyncio.ensure_future(self.handle_stream_data(event.stream_id, event.data))
@@ -73,8 +77,10 @@ class WebTransportProtocol(QuicConnectionProtocol):
             print("[ERROR] Failed to handle HTTP/3 event:", e)
 
     async def handle_event(self, event):
+        print(f"[DEBUG] handle_event called: {event}")
         if isinstance(event, HeadersReceived):
             headers = dict(event.headers)
+            print("[DEBUG] HeadersReceived:", headers)
             method = headers.get(b":method", b"").decode()
             protocol = headers.get(b":protocol", b"").decode()
             authority = headers.get(b":authority", b"").decode()
@@ -83,7 +89,7 @@ class WebTransportProtocol(QuicConnectionProtocol):
                 stream_id = event.stream_id
                 print(f"[QUIC] Accepted WebTransport session on stream {stream_id} from {authority}")
                 self._sessions.add(stream_id)
-                self._http.send_headers(stream_id, [
+                await self._http.send_headers(stream_id, [
                     (b":status", b"200"),
                     (b"sec-webtransport-http3-draft", b"draft02"),
                     (b"access-control-allow-origin", b"*")
@@ -95,6 +101,7 @@ class WebTransportProtocol(QuicConnectionProtocol):
 
     async def handle_stream_data(self, stream_id, data):
         try:
+            print(f"[DEBUG] Raw stream data on stream {stream_id}: {data!r}")
             message = json.loads(data.decode())
             print("[DEBUG] Stream data received:", message)
             if message.get("type") == "offer":
@@ -172,6 +179,7 @@ async def run_app():
     print(f"QUIC server running on https://{args.host}:{args.port}")
 
     http_task = asyncio.create_task(serve_http())
+    print("[DEBUG] Created HTTP Task", flush=True)
     quic_task = asyncio.create_task(serve(
         host=args.host,
         port=args.port,

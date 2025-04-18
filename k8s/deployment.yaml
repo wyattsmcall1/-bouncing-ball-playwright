@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bouncing-ball
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bouncing-ball
+  template:
+    metadata:
+      labels:
+        app: bouncing-ball
+    spec:
+      containers:
+        - name: bouncing-ball
+          image: bouncing-ball-playwright:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000  # HTTP
+            - containerPort: 8080  # QUIC/WebTransport
+          env:
+            - name: DISPLAY
+              value: ":0"
+          volumeMounts:
+            - name: x11-socket
+              mountPath: /tmp/.X11-unix
+      volumes:
+        - name: x11-socket
+          hostPath:
+            path: /tmp/.X11-unix
