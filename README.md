@@ -1,10 +1,31 @@
-# Bouncing Ball Tracker Challenge
+# Bouncing Ball Tracker Challenge (with Kubernetes Deployment)
 
-This project simulates a bouncing ball rendered using OpenCV, and streams it using WebRTC/WebTransport to a browser for real-time tracking and error feedback. The app is containerized with Docker and supports GUI display via X11 forwarding.
+This project simulates a bouncing ball rendered using OpenCV and streams it using WebRTC/WebTransport to a browser for real-time tracking and error feedback. It supports containerized testing with Docker, GUI via X11, and full deployment on Kubernetes using Minikube.
 
 ---
 
-## Environment Setup
+## 🧱 Project Structure
+
+```
+.
+├── Dockerfile
+├── app.py
+├── frame_worker.py
+├── video_track.py
+├── requirements.txt
+├── test_app.py
+├── test_index.py
+├── server/
+│   └── static/
+│       └── index.html
+└── k8s/
+    ├── deployment.yaml
+    └── service.yaml
+```
+
+---
+
+## 🐳 Docker Environment Setup
 
 ### 1. Build Docker Image
 
@@ -12,29 +33,18 @@ This project simulates a bouncing ball rendered using OpenCV, and streams it usi
 docker build -t bouncing-ball-playwright .
 ```
 
-### 2. Set DISPLAY Variable
-
-On macOS with XQuartz or Linux with X11, set the display environment:
+### 2. Set DISPLAY Variable (macOS/Linux)
 
 ```bash
 export IP=$(ifconfig en0 | grep inet | awk '$1=="inet" {print $2}')
-```
-
-Then allow connections:
-
-```bash
 xhost + $IP
 ```
 
 ---
 
-## Running Tests and Simulations
+## 🧪 Running Tests and Simulations
 
-All tests below assume you're in the project root and have already built the Docker image.
-
-### test_index.py
-
-Launches a Chromium browser inside Docker and runs an end-to-end test of the WebTransport + WebRTC handshake and video streaming.
+### `test_index.py`
 
 ```bash
 docker run -it --rm \
@@ -45,19 +55,7 @@ docker run -it --rm \
   pytest test_index.py -s -v
 ```
 
----
-
-### main_ball_test.py
-
-Simulates a bouncing ball and renders directly using OpenCV.
-
-Arguments:
-- `--duration`: Simulation duration in seconds (default: 5.0)
-- `--fps`: Frames per second (default: 30)
-- `--output`: Output directory (default: output)
-- `--video`: Save as video (default: True)
-
-Run:
+### `main_ball_test.py`
 
 ```bash
 docker run -it --rm \
@@ -68,19 +66,7 @@ docker run -it --rm \
   python3 main_ball_test.py --fps 30 --duration 5
 ```
 
----
-
-### main_worker_test.py
-
-Tests the FrameProducer multiprocessing class that generates frames.
-
-Arguments:
-- `--duration`: Simulation duration (seconds)
-- `--fps`: Frames per second
-- `--output`: Output directory
-- `--video`: Save as video instead of individual frames
-
-Run:
+### `main_worker_test.py`
 
 ```bash
 docker run -it --rm \
@@ -91,19 +77,7 @@ docker run -it --rm \
   python3 main_worker_test.py --fps 30 --duration 5
 ```
 
----
-
-### main_video_test.py
-
-Runs a full simulation using the multiprocessing worker and renders the output.
-
-Arguments:
-- `--duration`: Simulation duration (seconds)
-- `--fps`: Frames per second
-- `--output`: Output directory
-- `--video`: Save as video instead of individual frames
-
-Run:
+### `main_video_test.py`
 
 ```bash
 docker run -it --rm \
@@ -114,11 +88,7 @@ docker run -it --rm \
   python3 main_video_test.py --fps 30 --duration 5
 ```
 
----
-
-### test_app.py
-
-Launches the QUIC server and runs unit tests for WebRTC/WebTransport functionality.
+### `test_app.py`
 
 ```bash
 docker run -it --rm \
@@ -131,22 +101,89 @@ docker run -it --rm \
 
 ---
 
-## Output Files
+## 📁 Output Files
 
-All frames and videos are saved inside `output/` (mounted at `/app/output` in the container). You can view them on your host machine after each run.
-
----
-
-## Notes
-
-- The GUI (video display) requires X11. On macOS, ensure XQuartz is running.
-- Self-signed certificates are used (via mkcert) and trusted inside the browser container.
-- WebTransport runs over QUIC (port 8080) and the HTML frontend is served over HTTPS (8000).
+- Saved to `output/` directory.
+- Available as individual frames or videos depending on flags.
 
 ---
 
-## Troubleshooting
+## ⚙️ Kubernetes Deployment with Minikube
 
-- If you see a black screen, confirm X11 forwarding and mkcert trust store setup.
-- If WebTransport handshake fails, ensure localhost.pem is valid and trusted.
-- Use `xhost + $IP` to allow Docker to access your display.
+### Prerequisites
+
+- Minikube
+- Docker
+- `kubectl` CLI
+
+---
+
+### 🚀 Launch Instructions
+
+#### 1. Start Minikube
+
+```bash
+minikube start --driver=docker
+```
+
+#### 2. Point Docker to Minikube
+
+```bash
+eval $(minikube docker-env)
+```
+
+#### 3. Build Docker Image in Minikube
+
+```bash
+docker build -t bouncing-ball-playwright .
+```
+
+#### 4. Apply Kubernetes Manifests
+
+```bash
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+```
+
+#### 5. Verify
+
+```bash
+kubectl get pods
+```
+
+#### 6. Access the UI
+
+```bash
+minikube service bouncing-ball-service
+```
+
+---
+
+### 🔁 Cleanup
+
+```bash
+kubectl delete -f k8s/
+minikube stop
+```
+
+---
+
+## 🏁 Minikube Launch Script
+
+You can automate everything with:
+
+```bash
+chmod +x launch_minikube.sh
+./launch_minikube.sh
+```
+
+This will build the image, apply Kubernetes resources, and give you the public URL.
+
+---
+
+## 💡 Notes
+
+- The GUI requires X11 (e.g., XQuartz on macOS).
+- mkcert is used for local TLS.
+- QUIC runs over port 8080. HTTP over 8000.
+- Use supported browsers (Chromium, Chrome) with WebTransport.
