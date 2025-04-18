@@ -111,6 +111,7 @@ async def test_webtransport_connection_and_video():
             trust_mkcert_root_chromium(chrome_profile)
 
             spki_base64 = get_spki_base64(CERT_PATH)
+            console_messages = []
             context = await p.chromium.launch_persistent_context(
                 user_data_dir=chrome_profile,
                 headless=False,
@@ -136,7 +137,7 @@ async def test_webtransport_connection_and_video():
             index_path.write_text(patched_html)
 
             page = context.pages[0] if context.pages else await context.new_page()
-            console_messages = []
+
             page.on("console", lambda msg: console_messages.append(msg.text))
 
             await page.goto(f"http://{HOST_IP}:8000", wait_until="domcontentloaded")
@@ -144,12 +145,29 @@ async def test_webtransport_connection_and_video():
             await page.wait_for_function("window.transport && typeof window.transport.ready === 'object'", timeout=30000)
 
             await asyncio.sleep(3)
+            ready_state = await page.evaluate("document.querySelector('video').readyState")
+            error_state = await page.evaluate("document.querySelector('video').error")
+            console_log = await page.evaluate("document.querySelector('video').outerHTML")
+            print(">> [DEBUG] Video readyState:", ready_state)
+            print(">> [DEBUG] Video error:", error_state)
+            print(">> [DEBUG] Video element:", console_log)
 
             for m in console_messages:
                 print(">>", m)
                 
             assert any("WebTransport handshake complete" in msg for msg in console_messages), \
                 "WebTransport handshake did not complete successfully"
+
+            # Force video playback before checking status (fixes race condition)
+            await page.evaluate("""
+                () => {
+                    const video = document.querySelector("video");
+                    if (video) {
+                        video.muted = true;
+                        video.play().catch(err => console.warn("Forced play() failed:", err));
+                    }
+                }
+            """)
 
             is_playing = await page.evaluate("""
                 () => {

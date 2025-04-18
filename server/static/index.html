@@ -43,6 +43,8 @@
         const pc = new RTCPeerConnection();
         console.log("[JS] Created RTCPeerConnection ");
 
+        const transceiver = pc.addTransceiver('video', { direction: 'recvonly' });
+
         pc.ontrack = (event) => {
           const video = document.getElementById("video");
           console.log("[JS] Video element found:", video);
@@ -50,6 +52,9 @@
           console.log("[JS] Received remote track:", event.track.kind);
           console.log("[JS] Streams attached:", event.streams);
           video.srcObject = event.streams[0];
+          video.autoplay = true;
+          video.playsInline = true;
+          video.muted = true;
           console.log("[JS] Assigned stream to video.srcObject:", video.srcObject);
           video.onloadedmetadata = () => {
             console.log("[JS] video.readyState on loadedmetadata:", video.readyState);
@@ -63,8 +68,6 @@
             detectBallAndSendCoordinates(video, writer);
           };
         };
-
-        pc.addTransceiver('video', { direction: 'recvonly' });
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
