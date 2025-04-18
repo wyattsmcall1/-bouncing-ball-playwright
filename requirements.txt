@@ -1,0 +1,7 @@
+aiohttp
+aioquic
+aiortc
+opencv-python-headless
+opencv-python
+pytest
+pytest-asyncio

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="icon" href="data:,">
+  <meta charset="UTF-8" />
+  <title>Bouncing Ball Tracker</title>
+  <style>
+    body { margin: 0; background: black; overflow: hidden; }
+    canvas, video { position: absolute; top: 0; left: 0; }
+  </style>
+</head>
+<body>
+  <video id="video" autoplay playsinline width="640" height="480"></video>
+  <canvas id="overlay" width="640" height="480"></canvas>
+  <script>
+    console.log("[JS] Script started...");
+    window.onerror = (msg, src, line, col, err) =>
+      console.error("[JS] Global error:", msg, src, line, col, err);
+
+    async function startApp() {
+      console.log("[JS] startApp triggered");
+      const url = `https://%%HOST_IP%%:8080`;
+
+      console.log("[JS] Connecting to WebTransport...");
+
+      try {
+        const transport = new WebTransport(url);
+        console.log("[JS] Created WebTransport object:", transport);
+        window.transport = transport;
+
+        await transport.ready;
+        console.log("[JS] WebTransport handshake complete!");
+
+        const bidiStream = await transport.createBidirectionalStream();
+        console.log("[JS] Created Bidirectional Stream");
+        const writer = bidiStream.writable.getWriter();
+        console.log("[JS] Created Writer");
+        const reader = bidiStream.readable.getReader();
+        console.log("[JS] Created Reader");
+
+        const pc = new RTCPeerConnection();
+        console.log("[JS] Created RTCPeerConnection ");
+
+        pc.ontrack = (event) => {
+          const video = document.getElementById("video");
+          console.log("[JS] Video element found:", video);
+          console.log("[JS] video.readyState before setting srcObject:", video.readyState);
+          console.log("[JS] Received remote track:", event.track.kind);
+          console.log("[JS] Streams attached:", event.streams);
+          video.srcObject = event.streams[0];
+          console.log("[JS] Assigned stream to video.srcObject:", video.srcObject);
+          video.onloadedmetadata = () => {
+            console.log("[JS] video.readyState on loadedmetadata:", video.readyState);
+            console.log("[JS] video.paused:", video.paused, "| video.ended:", video.ended);
+            console.log("[JS] Video metadata loaded. Attempting to play...");
+            video.play().then(() => {
+              console.log("[JS] Video playback started.");
+            }).catch(err => {
+              console.error("[JS] Video playback failed:", err);
+            });
+            detectBallAndSendCoordinates(video, writer);
+          };
+        };
+
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        await writer.write(new TextEncoder().encode(JSON.stringify({
+          type: "offer", sdp: pc.localDescription.sdp
+        })));
+
+        const { value } = await reader.read();
+        const answerMsg = JSON.parse(new TextDecoder().decode(value));
+        await pc.setRemoteDescription(new RTCSessionDescription(answerMsg));
+
+        console.log("[JS] WebRTC stream connected");
+        console.log("[JS] Finished setting up WebRTC connection.");
+      } catch (err) {
+        console.error("[JS] Failed to initialize WebTransport:", err);
+      }
+    }
+
+    function detectBallAndSendCoordinates(video, writer) {
+      const canvas = document.getElementById("overlay");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+      function isGreen(r, g, b) {
+        return g > 150 && r < 100 && b < 100;
+      }
+
+      async function processFrame() {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = frame.data;
+
+        let sumX = 0, sumY = 0, count = 0;
+        for (let y = 0; y < canvas.height; y += 2) {
+          for (let x = 0; x < canvas.width; x += 2) {
+            const i = (y * canvas.width + x) * 4;
+            if (isGreen(data[i], data[i+1], data[i+2])) {
+              sumX += x; sumY += y; count++;
+            }
+          }
+        }
+
+        if (count > 0) {
+          const cx = Math.round(sumX / count);
+          const cy = Math.round(sumY / count);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.beginPath();
+          ctx.arc(cx, cy, 6, 0, 2 * Math.PI);
+          ctx.fillStyle = "red";
+          ctx.fill();
+
+          const coords = JSON.stringify({ type: "coords", x: cx, y: cy });
+          await writer.write(new TextEncoder().encode(coords));
+        }
+
+        requestAnimationFrame(processFrame);
+      }
+
+      requestAnimationFrame(processFrame);
+    }
+
+    startApp();
+  </script>
+</body>
+</html>
