@@ -3,11 +3,11 @@
 import pytest
 import asyncio
 import json
+import multiprocessing
 from unittest.mock import MagicMock, AsyncMock, patch
 from server.app import WebTransportProtocol
 from aiortc import RTCSessionDescription
 from aioquic.h3.events import HeadersReceived
-from aioquic.quic.events import StreamDataReceived
 
 def init_protocol(app_ctx):
     """Helper to create and initialize WebTransportProtocol with _http mocked."""
@@ -38,7 +38,10 @@ async def test_handle_coords():
 async def test_process_offer():
     protocol = init_protocol({"fps": 5, "duration": 1})
 
-    with patch("server.app.RTCPeerConnection") as MockPC:
+    with patch("server.app.RTCPeerConnection") as MockPC, \
+         patch("server.app.FrameProducer") as MockProducer:
+
+        # Setup RTC mocks
         mock_pc = MockPC.return_value
         mock_pc.createAnswer = AsyncMock(return_value=RTCSessionDescription(sdp="dummy_sdp", type="answer"))
         mock_pc.setLocalDescription = AsyncMock()
@@ -47,6 +50,15 @@ async def test_process_offer():
         mock_pc.localDescription = RTCSessionDescription(sdp="dummy_sdp", type="answer")
         mock_pc.sctp.transport.iceGatherer.getLocalCandidates.return_value = []
 
+        # Mock worker process with shutdown logging
+        mock_worker = MagicMock()
+        mock_worker.start.side_effect = lambda: print("[MockWorker] Started")
+        mock_worker.terminate.side_effect = lambda: print("[MockWorker] Terminated")
+        mock_worker.join.side_effect = lambda timeout=None: print("[MockWorker] Joined")
+
+        # Patch return and simulate app behavior
+        MockProducer.return_value = mock_worker
+
         offer_msg = {"type": "offer", "sdp": "v=0..."}
         await protocol.process_offer(stream_id=3, message=offer_msg)
 
@@ -54,6 +66,10 @@ async def test_process_offer():
         sent = json.loads(protocol._http.send_data.call_args.args[1].decode())
         assert sent["type"] == "answer"
         assert "sdp" in sent
+
+        # This works now because we're accessing the mock we injected
+        mock_worker.terminate()
+        mock_worker.join()
 
 @pytest.mark.asyncio
 async def test_handle_event_connect():
@@ -75,5 +91,5 @@ async def test_handle_event_connect():
 
     assert 7 in protocol._sessions
     protocol._http.send_headers.assert_awaited_once()
-    headers = dict(protocol._http.send_headers.call_args.args[1])  # args[1] = 
+    headers = dict(protocol._http.send_headers.call_args.args[1])
     assert headers[b":status"] == b"200"
